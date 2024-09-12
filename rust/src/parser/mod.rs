@@ -11,7 +11,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    fn new(lexer: &'a mut Lexer) -> Self {
+    pub fn new(lexer: &'a mut Lexer) -> Self {
         Parser {
             lexer,
             current_token: Token::Unknown(' '),
@@ -19,7 +19,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn get_next_token(&mut self) {
+    pub fn get_next_token(&mut self) {
         self.current_token = self.lexer.get_token();
     }
 
@@ -31,7 +31,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_number_expr(&mut self) -> Rc<dyn ExprAST> {
+    pub fn parse_number_expr(&mut self) -> Rc<dyn ExprAST> {
         if let Token::Number(val) = self.current_token {
             self.get_next_token(); // consume the number
             Rc::new(NumberExprAST::new(val))
@@ -40,7 +40,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_paren_expr(&mut self) -> Rc<dyn ExprAST> {
+    pub fn parse_paren_expr(&mut self) -> Rc<dyn ExprAST> {
         self.get_next_token(); // consume '('
         let expr = self.parse_expression();
         if let Token::Unknown(')') = self.current_token {
@@ -51,7 +51,7 @@ impl<'a> Parser<'a> {
         expr
     }
 
-    fn parse_identifier_expr(&mut self) -> Rc<dyn ExprAST> {
+    pub fn parse_identifier_expr(&mut self) -> Rc<dyn ExprAST> {
         if let Token::Identifier(ref name) = self.current_token {
             let name_clone = name.clone();
             self.get_next_token(); // consume identifier
@@ -82,7 +82,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_primary(&mut self) -> Rc<dyn ExprAST> {
+    pub fn parse_primary(&mut self) -> Rc<dyn ExprAST> {
         match self.current_token {
             Token::Identifier(_) => self.parse_identifier_expr(),
             Token::Number(_) => self.parse_number_expr(),
@@ -91,12 +91,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_expression(&mut self) -> Rc<dyn ExprAST> {
+    pub fn parse_expression(&mut self) -> Rc<dyn ExprAST> {
         let lhs = self.parse_primary();
         self.parse_binop_rhs(0, lhs)
     }
 
-    fn parse_binop_rhs(&mut self, expr_prec: i32, mut lhs: Rc<dyn ExprAST>) -> Rc<dyn ExprAST> {
+    pub fn parse_binop_rhs(&mut self, expr_prec: i32, mut lhs: Rc<dyn ExprAST>) -> Rc<dyn ExprAST> {
         loop {
             let tok_prec = match self.get_tok_precedence() {
                 Some(prec) => prec,
