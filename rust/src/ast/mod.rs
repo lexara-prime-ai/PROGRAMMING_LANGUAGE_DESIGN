@@ -1,84 +1,72 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 pub trait ExprAST {
-    fn evaluate(&self) -> f64;
+    fn as_any(&self) -> &dyn std::any::Any;
 }
 
-struct NumberExprAST {
-    val: f64,
+pub struct NumberExprAST {
+    pub value: f64,
 }
 
 impl NumberExprAST {
-    fn new(val: f64) -> Self {
-        Self { val }
+    pub fn new(value: f64) -> Self {
+        NumberExprAST { value }
     }
 }
 
 impl ExprAST for NumberExprAST {
-    fn evaluate(&self) -> f64 {
-        self.val
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 
-struct BinaryExprAST {
-    op: char,
-    lhs: Box<dyn ExprAST>,
-    rhs: Box<dyn ExprAST>,
+pub struct VariableExprAST {
+    pub name: String,
+}
+
+impl VariableExprAST {
+    pub fn new(name: String) -> Self {
+        VariableExprAST { name }
+    }
+}
+
+impl ExprAST for VariableExprAST {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+pub struct BinaryExprAST {
+    pub op: char,
+    pub lhs: Rc<dyn ExprAST>,
+    pub rhs: Rc<dyn ExprAST>,
 }
 
 impl BinaryExprAST {
-    fn new(op: char, lhs: Box<dyn ExprAST>, rhs: Box<dyn ExprAST>) -> Self {
-        Self { op, lhs, rhs }
+    pub fn new(op: char, lhs: Rc<dyn ExprAST>, rhs: Rc<dyn ExprAST>) -> Self {
+        BinaryExprAST { op, lhs, rhs }
     }
 }
 
 impl ExprAST for BinaryExprAST {
-    fn evaluate(&self) -> f64 {
-        // To do - Parse binary expressions.
-        0.0
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 
-struct CallExprAST {
-    callee: String,
-    args: Vec<Box<dyn ExprAST>>,
+pub struct CallExprAST {
+    pub callee: String,
+    pub args: Vec<Rc<dyn ExprAST>>,
 }
 
 impl CallExprAST {
-    fn new(callee: String, args: Vec<Box<dyn ExprAST>>) -> Self {
-        Self { callee, args }
+    pub fn new(callee: String, args: Vec<Rc<dyn ExprAST>>) -> Self {
+        CallExprAST { callee, args }
     }
 }
 
 impl ExprAST for CallExprAST {
-    fn evaluate(&self) -> f64 {
-        // To do - Implement logic for function call.
-        0.0
-    }
-}
-
-struct PrototypeAST {
-    name: String,
-    args: Vec<String>,
-}
-
-impl PrototypeAST {
-    fn new(name: String, args: Vec<String>) -> Self {
-        Self { name, args }
-    }
-
-    fn get_name(&self) -> &String {
-        &self.name
-    }
-}
-
-struct FunctionAST {
-    proto: Arc<PrototypeAST>,
-    body: Box<dyn ExprAST>,
-}
-
-impl FunctionAST {
-    fn new(proto: Arc<PrototypeAST>, body: Box<dyn ExprAST>) -> Self {
-        Self { proto, body }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }

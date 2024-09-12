@@ -1,113 +1,109 @@
 use std::collections::HashMap;
 use std::io::{self, Read};
 
-use std::str::FromStr;
-
-/// The lexer returns tokens [0-255] if it is an unknown character,
-/// otherwise one of the following enum variants for known things.
+#[derive(Debug, PartialEq)]
 pub enum Token {
-    EOF,
-
-    /// Comands.
+    Eof,
     Def,
     Extern,
-
-    /// Primary.
     Identifier(String),
     Number(f64),
-    Character(char),
+    Unknown(char),
 }
 
-static mut IDENTIFIER_STR: String = String::new();
-static mut NUM_VAL: f64 = 0.0;
+pub struct Lexer {
+    pub input: String,
+    pub index: usize,
+    pub current_char: Option<char>,
+}
 
-/**
- *
- * Each token returned by our lexer will either be one of the
- * Token enum values or it will be an ‘unknown’ character like ‘+’,
- * which is returned as its ASCII value. If the current token is an
- * identifier, the IdentifierStr global variable holds the name of
- * the identifier. If the current token is a numeric literal (like 1.0),
- * NUM_VAL holds its value. We use global variables for simplicity, but
- * this is not the best choice for a real language implementation :).
- *
- */
-pub fn get_token() -> Token {
-    static mut LAST_CHAR: char = ' ';
-    // Buffer to store each character.
-    let mut buffer = [0; 1];
+impl Lexer {
+    pub fn new(input: String) -> Self {
+        let mut lexer = Lexer {
+            input,
+            index: 0,
+            current_char: None,
+        };
+        lexer.read_char();
+        lexer
+    }
 
-    unsafe {
-        // Skip whitespace characters.
-        while LAST_CHAR.is_whitespace() {
-            // Read from stdin until a non-whitespace
-            // character is found.
-            io::stdin().read_exact(&mut buffer).unwrap();
-            LAST_CHAR = buffer[0] as char;
+    pub fn read_char(&mut self) {
+        if self.index >= self.input.len() {
+            self.current_char = None;
+        } else {
+            self.current_char = self.input.chars().nth(self.index);
+            self.index += 1;
+        }
+    }
+
+    pub fn get_token(&mut self) -> Token {
+        self.skip_whitespace();
+
+        match self.current_char {
+            Some(c) if c.is_alphabetic() => self.read_identifier_or_keyword(),
+            Some(c) if c.is_digit(10) || c == '.' => self.read_number(),
+            Some('#') => {
+                self.skip_comment();
+                self.get_token()
+            }
+            Some(c) => {
+                self.read_char();
+                Token::Unknown(c)
+            }
+            None => Token::Eof,
+        }
+    }
+
+    pub fn skip_whitespace(&mut self) {
+        while let Some(c) = self.current_char {
+            if c.is_whitespace() {
+                self.read_char();
+            } else {
+                break;
+            }
+        }
+    }
+
+    pub fn skip_comment(&mut self) {
+        while let Some(c) = self.current_char {
+            if c == '\n' || c == '\r' {
+                break;
+            }
+            self.read_char();
+        }
+    }
+
+    pub fn read_identifier_or_keyword(&mut self) -> Token {
+        let mut identifier = String::new();
+        while let Some(c) = self.current_char {
+            if c.is_alphanumeric() {
+                identifier.push(c);
+                self.read_char();
+            } else {
+                break;
+            }
         }
 
-        // Identifier: [a-zA-Z][a-zA-Z0-9]*
-        if LAST_CHAR.is_alphabetic() {
-            IDENTIFIER_STR = LAST_CHAR.to_string();
+        match identifier.as_str() {
+            "def" => Token::Def,
+            "extern" => Token::Extern,
+            _ => Token::Identifier(identifier),
+        }
+    }
 
-            while io::stdin().read_exact(&mut buffer).is_ok() {
-                LAST_CHAR = buffer[0] as char;
-
-                if LAST_CHAR.is_alphanumeric() {
-                    IDENTIFIER_STR.push(LAST_CHAR);
-                } else {
-                    break;
-                }
+    pub fn read_number(&mut self) -> Token {
+        let mut number_str = String::new();
+        while let Some(c) = self.current_char {
+            if c.is_digit(10) || c == '.' {
+                number_str.push(c);
+                self.read_char();
+            } else {
+                break;
             }
-
-            if IDENTIFIER_STR == "def" {
-                return Token::Def;
-            }
-
-            if IDENTIFIER_STR == "extern" {
-                return Token::Extern;
-            }
-            return Token::Identifier(IDENTIFIER_STR.clone());
         }
 
-        if LAST_CHAR.is_digit(10) || LAST_CHAR == '.' {
-            let mut num_str = String::new();
-
-            while io::stdin().read_exact(&mut buffer).is_ok() {
-                LAST_CHAR = buffer[0] as char;
-
-                if LAST_CHAR.is_digit(10) || LAST_CHAR == '.' {
-                    num_str.push(LAST_CHAR);
-                } else {
-                    break;
-                }
-            }
-
-            NUM_VAL = f64::from_str(&num_str).unwrap();
-            return Token::Number(NUM_VAL);
-        }
-
-        // Parsing comments.
-        if LAST_CHAR == '#' {
-            while io::stdin().read_exact(&mut buffer).is_ok() {
-                LAST_CHAR = buffer[0] as char;
-                if LAST_CHAR == '\n' || LAST_CHAR == '\r' {
-                    break;
-                }
-            }
-            return get_token();
-        }
-
-        // CHeck for the end of file.
-        // Don't eat the EOF.
-        if LAST_CHAR == '\0' {
-            return Token::EOF;
-        }
-
-        // Otherwise, return the character as its ASCII value.
-        let current_char = LAST_CHAR;
-        io::stdin().read_exact(&mut buffer).unwrap();
-        LAST_CHAR = buffer[0] as char;
-        Token::Character(current_char)
+        let number = number_str.parse::<f64>().unwrap_or(0.0);
+        Token::Number(number)
     }
 }
