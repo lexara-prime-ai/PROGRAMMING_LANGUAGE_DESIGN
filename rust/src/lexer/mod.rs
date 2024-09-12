@@ -89,9 +89,25 @@ pub fn get_token() -> Token {
 
         // Parsing comments.
         if LAST_CHAR == '#' {
-            
+            while io::stdin().read_exact(&mut buffer).is_ok() {
+                LAST_CHAR = buffer[0] as char;
+                if LAST_CHAR == '\n' || LAST_CHAR == '\r' {
+                    break;
+                }
+            }
+            return get_token();
         }
-    }
 
-    todo!()
+        // CHeck for the end of file.
+        // Don't eat the EOF.
+        if LAST_CHAR == '\0' {
+            return Token::EOF;
+        }
+
+        // Otherwise, return the character as its ASCII value.
+        let current_char = LAST_CHAR;
+        io::stdin().read_exact(&mut buffer).unwrap();
+        LAST_CHAR = buffer[0] as char;
+        Token::Character(current_char)
+    }
 }
