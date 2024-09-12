@@ -79,6 +79,6 @@ struct FunctionAST {
 
 impl FunctionAST {
     fn new(proto: Arc<PrototypeAST>, body: Box<dyn ExprAST>) -> Self {
-        Self {proto, body }
+        Self { proto, body }
     }
 }
